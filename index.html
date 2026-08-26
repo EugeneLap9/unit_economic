@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Юнит-экономика Uzum Market</title>
+<meta name="description" content="Калькулятор юнит-экономики для продавцов Uzum Market: считает продажную цену по нужной прибыли с учётом комиссии, логистического сбора, рекламы и налогов.">
+<meta name="theme-color" content="#ECEEF1">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%236A2BE2'/%3E%3Ctext x='16' y='23' font-family='monospace' font-size='19' font-weight='bold' fill='white' text-anchor='middle'%3E%E2%82%BD%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ECEEF1;
+  --surface:#FFFFFF;
+  --line:#D9DDE3;
+  --line-soft:#E8EBEF;
+  --ink:#171A1F;
+  --ink-2:#4C5159;
+  --muted:#8B909A;
+  --accent:#6A2BE2;
+  --accent-soft:#F1EBFE;
+  --profit:#0F7B4F;
+  --profit-soft:#E6F3EC;
+  --loss:#B3391F;
+  --loss-soft:#FBEDE9;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:10px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  padding:28px 20px 64px;
+}
+.wrap{max-width:1180px;margin:0 auto}
+
+/* ---------- header ---------- */
+.eyebrow{
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+}
+h1{
+  font-size:clamp(26px,3.4vw,38px);font-weight:800;letter-spacing:-.025em;
+  margin:6px 0 10px;
+}
+.lede{color:var(--ink-2);max-width:62ch;margin:0 0 22px}
+.lede a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+
+/* ---------- mode switch ---------- */
+.modes{
+  display:inline-flex;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:3px;gap:3px;margin-bottom:24px;
+}
+.modes button{
+  font-family:var(--sans);font-size:13.5px;font-weight:600;color:var(--ink-2);
+  background:none;border:0;border-radius:7px;padding:8px 15px;cursor:pointer;
+}
+.modes button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.modes button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- layout ---------- */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:24px;align-items:start}
+@media (max-width:1000px){
+  .grid{grid-template-columns:1fr}
+  .result{order:-1;position:static!important}
+}
+
+/* ---------- cards ---------- */
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:20px;margin-bottom:16px;
+}
+.card > h2{
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 4px;
+}
+.card .hint{font-size:12.5px;color:var(--muted);margin:0 0 16px}
+.card .hint a{color:var(--accent)}
+
+/* ---------- rows ---------- */
+.row{
+  display:grid;grid-template-columns:1fr 150px 30px;gap:8px;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--line-soft);
+}
+.row:last-of-type{border-bottom:0}
+.row.pct{grid-template-columns:1fr 110px 30px}
+.row .name{
+  font-size:14px;color:var(--ink);background:none;border:0;padding:4px 2px;
+  font-family:var(--sans);width:100%;border-radius:5px;
+}
+.row .name:hover{background:var(--line-soft)}
+.row .name:focus{background:var(--accent-soft);outline:none}
+.field{position:relative;display:flex;align-items:center}
+.field input{
+  width:100%;font-family:var(--mono);font-size:14px;font-weight:500;
+  text-align:right;padding:7px 40px 7px 8px;border:1px solid var(--line);
+  border-radius:7px;background:#FBFBFC;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.field.pct input{padding-right:26px}
+.field input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+.field .unit{
+  position:absolute;right:9px;font-family:var(--mono);font-size:11px;color:var(--muted);
+  pointer-events:none;letter-spacing:.02em;
+}
+.del{
+  width:26px;height:26px;border:0;background:none;border-radius:6px;color:var(--muted);
+  cursor:pointer;font-size:17px;line-height:1;padding:0;
+}
+.del:hover{background:var(--loss-soft);color:var(--loss)}
+.del:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.add{
+  margin-top:12px;font-family:var(--sans);font-size:13px;font-weight:600;color:var(--accent);
+  background:none;border:1px dashed #C6B4F0;border-radius:8px;padding:8px 12px;cursor:pointer;
+}
+.add:hover{background:var(--accent-soft)}
+.add:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* single labelled field */
+.f{display:grid;grid-template-columns:1fr 150px;gap:10px;align-items:center;padding:7px 0}
+.f > label{font-size:14px;color:var(--ink)}
+.f > label small{display:block;font-size:12px;color:var(--muted);line-height:1.35;margin-top:1px}
+.f.wide{grid-template-columns:1fr 110px}
+
+/* dims */
+.dims{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.dims .field input{text-align:center;padding:7px 8px}
+.dims .cap{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:4px;display:block;text-align:center}
+.calcline{
+  display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  margin-top:14px;padding-top:12px;border-top:1px solid var(--line-soft);
+  font-family:var(--mono);font-size:12.5px;color:var(--ink-2);
+}
+.calcline b{font-size:15px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* choice chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 14px}
+.chips button{
+  font-family:var(--sans);font-size:13px;font-weight:500;color:var(--ink-2);
+  background:#F6F7F9;border:1px solid var(--line);border-radius:7px;padding:6px 11px;cursor:pointer;
+}
+.chips button[aria-pressed="true"]{background:var(--accent-soft);border-color:#C6B4F0;color:var(--accent);font-weight:600}
+.chips button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.check{display:flex;align-items:center;gap:9px;padding:8px 0;font-size:14px;cursor:pointer}
+.check input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex:none}
+
+/* ---------- result ---------- */
+.result{position:sticky;top:20px}
+.result .card{padding:22px}
+.headline{
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 8px;
+}
+.price{
+  font-family:var(--mono);font-size:clamp(30px,4.4vw,42px);font-weight:600;letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;line-height:1.05;
+}
+.price .cur{font-size:.42em;font-weight:500;color:var(--muted);margin-left:6px;letter-spacing:.06em}
+.subprice{font-size:13px;color:var(--ink-2);margin-top:7px}
+.subprice b{font-family:var(--mono);font-weight:600;font-variant-numeric:tabular-nums}
+.alert{
+  background:var(--loss-soft);border:1px solid #EFC8BC;color:var(--loss);
+  border-radius:9px;padding:11px 13px;font-size:13px;margin-top:14px;
+}
+
+/* ribbon */
+.ribbon{display:flex;height:16px;border-radius:5px;overflow:hidden;margin:20px 0 14px;background:var(--line-soft)}
+.ribbon i{display:block;height:100%;transition:width .22s ease}
+@media (prefers-reduced-motion:reduce){.ribbon i{transition:none}}
+
+/* ledger */
+.ledger{width:100%;border-collapse:collapse;font-size:13.5px}
+.ledger td{padding:6px 0;vertical-align:baseline}
+.ledger td.k{color:var(--ink-2)}
+.ledger td.k .dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:8px}
+.ledger td.v{
+  text-align:right;font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+.ledger td.p{
+  text-align:right;font-family:var(--mono);font-size:11.5px;color:var(--muted);
+  width:52px;font-variant-numeric:tabular-nums;
+}
+.ledger tr.top td{border-bottom:1px solid var(--line);padding-bottom:9px;font-weight:600}
+.ledger tr.total td{border-top:1px solid var(--ink);padding-top:11px;font-size:15px;font-weight:700}
+.ledger tr.total td.v{font-size:17px;font-weight:600}
+.pos{color:var(--profit)} .neg{color:var(--loss)}
+
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line-soft);border-radius:10px;overflow:hidden;margin-top:20px}
+.metrics div{background:var(--surface);padding:12px 13px}
+.metrics dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.metrics dd{margin:3px 0 0;font-family:var(--mono);font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+
+.copy{
+  width:100%;margin-top:16px;font-family:var(--sans);font-size:14px;font-weight:600;
+  background:var(--ink);color:#fff;border:0;border-radius:9px;padding:12px;cursor:pointer;
+}
+.copy:hover{background:#000}
+.copy:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.copy.ghost{background:none;color:var(--ink-2);border:1px solid var(--line);margin-top:8px}
+.copy.ghost:hover{background:#F6F7F9;color:var(--ink)}
+
+@media (max-width:430px){
+  body{padding:20px 14px 48px}
+  .card{padding:16px}
+  .row{grid-template-columns:1fr 104px 26px;gap:6px}
+  .row.pct{grid-template-columns:1fr 84px 26px}
+  .f{grid-template-columns:1fr 118px}
+  .f.wide{grid-template-columns:1fr 92px}
+  .metrics{grid-template-columns:1fr}
+  .ledger{font-size:12.5px}
+}
+
+.saverow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.tname{
+  font-family:var(--sans);font-size:14px;padding:9px 10px;border:1px solid var(--line);
+  border-radius:7px;background:#FBFBFC;color:var(--ink);width:100%;
+}
+.tname:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+.saverow .add{margin-top:0;white-space:nowrap}
+.prof{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line-soft)}
+.prof:last-child{border-bottom:0}
+.prof .pname{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prof .pname small{display:block;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.prof .load{
+  font-family:var(--sans);font-size:12.5px;font-weight:600;color:var(--accent);
+  background:var(--accent-soft);border:0;border-radius:6px;padding:6px 11px;cursor:pointer;
+}
+.prof .load:hover{background:#E4D8FD}
+.prof .load:focus-visible,.linkbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.empty{font-size:13px;color:var(--muted);padding:10px 0 2px}
+.filerow{display:flex;flex-wrap:wrap;gap:18px;margin-top:12px;border-top:1px solid var(--line-soft);padding-top:8px}
+.linkbtn{background:none;border:0;color:var(--accent);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;padding:6px 0}
+.linkbtn:hover{text-decoration:underline}
+.saved{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:12px 0 0}
+
+footer{margin-top:28px;font-size:12.5px;color:var(--muted);max-width:78ch;line-height:1.6}
+footer a{color:var(--accent)}
+footer p{margin:0 0 8px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <p class="eyebrow">Uzum Market · FBO / FBS</p>
+  <h1>Юнит-экономика: какая цена нужна</h1>
+  <p class="lede">Задайте расходы и желаемую прибыль — калькулятор посчитает цену, при которой эта прибыль остаётся на руках после комиссии, логистики, рекламы и налогов. Любую статью можно переименовать, изменить или удалить.</p>
+
+  <div class="modes" role="group" aria-label="Что считаем">
+    <button id="mPrice" aria-pressed="true">Считать цену по прибыли</button>
+    <button id="mProfit" aria-pressed="false">Считать прибыль по цене</button>
+  </div>
+
+  <div class="grid">
+    <!-- ============ INPUTS ============ -->
+    <div>
+      <section class="card">
+        <h2>Сохранённые расчёты</h2>
+        <p class="hint">Настройки запоминаются на этом устройстве автоматически — ничего нажимать не нужно. Чтобы держать рядом несколько товаров, сохраните каждый под своим названием.</p>
+        <div class="saverow">
+          <input id="profName" class="tname" placeholder="Название товара" aria-label="Название расчёта">
+          <button class="add" id="saveProf">Сохранить</button>
+        </div>
+        <div id="profList"></div>
+        <div class="filerow">
+          <button class="linkbtn" id="expSet">Выгрузить настройки в файл</button>
+          <button class="linkbtn" id="impSet">Загрузить из файла</button>
+          <input type="file" id="impFile" accept="application/json,.json" hidden>
+        </div>
+        <p class="saved" id="savedHint"></p>
+      </section>
+
+      <section class="card">
+        <h2>Себестоимость и расходы на единицу</h2>
+        <p class="hint">Всё, что вы платите за один товар до того, как он продан. Эти деньги вложены — от них считается ROI.</p>
+        <div class="f">
+          <label for="cost">Закупочная цена<small>от неё считается наценка</small></label>
+          <div class="field"><input id="cost" inputmode="numeric" value="50 000"><span class="unit">сум</span></div>
+        </div>
+        <div id="fixedRows"></div>
+        <button class="add" id="addFixed">+ Добавить статью расходов</button>
+      </section>
+
+      <section class="card">
+        <h2>Логистический сбор Uzum</h2>
+        <p class="hint">Считается от объёма упаковки: 5 250 сум за первый литр и по 250 сум за каждый следующий, максимум 50 000 сум. Объём округляется вверх до целого литра.</p>
+        <div class="chips" role="group" aria-label="Как считать сбор">
+          <button data-logi="dims" aria-pressed="true">По габаритам</button>
+          <button data-logi="manual" aria-pressed="false">Ввести вручную</button>
+          <button data-logi="none" aria-pressed="false">Товар без ВГХ</button>
+        </div>
+        <div id="dimsBox">
+          <div class="dims">
+            <div><span class="cap">Длина</span><div class="field"><input id="dl" inputmode="numeric" value="250"></div></div>
+            <div><span class="cap">Ширина</span><div class="field"><input id="dw" inputmode="numeric" value="180"></div></div>
+            <div><span class="cap">Высота</span><div class="field"><input id="dh" inputmode="numeric" value="80"></div></div>
+          </div>
+          <p class="hint" style="margin:8px 0 0">Размеры упаковки в миллиметрах.</p>
+        </div>
+        <div class="f" id="logiManualBox" hidden>
+          <label for="logiManual">Сбор вручную</label>
+          <div class="field"><input id="logiManual" inputmode="numeric" value="6 000"><span class="unit">сум</span></div>
+        </div>
+        <p class="hint" id="logiNoneHint" hidden style="margin:0">Если в карточке нет длины, ширины и высоты, Uzum списывает максимальный тариф — 50 000 сум с единицы.</p>
+        <div class="calcline"><span id="volTxt">Объём 4 л</span><b id="logiTxt">6 000 сум</b></div>
+      </section>
+
+      <section class="card">
+        <h2>Проценты с продажи</h2>
+        <p class="hint">Всё, что удерживается или тратится в процентах от цены. Комиссия зависит от категории — от 3% до 35%, точную ставку смотрите в <a href="https://docs.google.com/spreadsheets/d/1J9EQEJqZcF3eRS4nLLAjR0M8jcb0QabZGFpfIP_mpRU/edit?gid=360068501#gid=360068501" target="_blank" rel="noopener">таблице комиссий Uzum</a>.</p>
+        <div id="pctRows"></div>
+        <button class="add" id="addPct">+ Добавить процентную статью</button>
+      </section>
+
+      <section class="card">
+        <h2>Налоги</h2>
+        <div class="chips" role="group" aria-label="Режим налога">
+          <button data-tax="turnover" aria-pressed="true">С оборота</button>
+          <button data-tax="profit" aria-pressed="false">С прибыли</button>
+          <button data-tax="none" aria-pressed="false">Без налога</button>
+        </div>
+        <div class="f wide" id="taxRateBox">
+          <label for="taxRate" id="taxRateLabel">Ставка налога с оборота</label>
+          <div class="field pct"><input id="taxRate" inputmode="decimal" value="4"><span class="unit">%</span></div>
+        </div>
+        <div class="chips" role="group" aria-label="НДС" style="margin-top:14px">
+          <button data-vat="off" aria-pressed="true">Без НДС</button>
+          <button data-vat="on" aria-pressed="false">Плательщик НДС</button>
+        </div>
+        <div id="vatBox" hidden>
+          <div class="f wide">
+            <label for="vatRate">Ставка НДС</label>
+            <div class="field pct"><input id="vatRate" inputmode="decimal" value="12"><span class="unit">%</span></div>
+          </div>
+          <div class="f">
+            <label for="vatIn">Закупка с входным НДС<small>затраты на единицу, по которым есть вычет</small></label>
+            <div class="field"><input id="vatIn" inputmode="numeric" value="50 000"><span class="unit">сум</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="goalCard">
+        <h2>Цель по прибыли</h2>
+        <p class="hint">Сколько чистыми вы хотите оставить себе с одной проданной единицы — после всех расходов, комиссии и налогов. Маржа в процентах посчитается сама.</p>
+        <div class="f">
+          <label for="goalFix">Чистая прибыль с единицы</label>
+          <div class="field"><input id="goalFix" inputmode="numeric" value="20 000"><span class="unit">сум</span></div>
+        </div>
+        <div class="f wide">
+          <label for="round">Округление цены<small>вверх, до красивого числа</small></label>
+          <select id="round" style="font-family:var(--mono);font-size:13px;padding:8px;border:1px solid var(--line);border-radius:7px;background:#FBFBFC">
+            <option value="0">нет</option>
+            <option value="1000" selected>1 000</option>
+            <option value="5000">5 000</option>
+            <option value="10000">10 000</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="card" id="priceCard" hidden>
+        <h2>Цена продажи</h2>
+        <p class="hint">Цена, которую платит покупатель, — с учётом скидок и промокодов, если они есть.</p>
+        <div class="f">
+          <label for="priceIn">Цена на витрине</label>
+          <div class="field"><input id="priceIn" inputmode="numeric" value="100 000"><span class="unit">сум</span></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Партия</h2>
+        <div class="f wide">
+          <label for="qty">Сколько единиц планируете продать</label>
+          <div class="field"><input id="qty" inputmode="numeric" value="100"><span class="unit">шт</span></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ RESULT ============ -->
+    <div class="result">
+      <div class="card">
+        <p class="headline" id="resTitle">Цена продажи</p>
+        <div class="price"><span id="bigNum">0</span><span class="cur">сум</span></div>
+        <p class="subprice" id="subPrice"></p>
+        <div id="alertBox"></div>
+
+        <div class="ribbon" id="ribbon"></div>
+        <table class="ledger"><tbody id="ledger"></tbody></table>
+
+        <dl class="metrics">
+          <div><dt>Чистая маржа</dt><dd id="mMargin">—</dd></div>
+          <div><dt>Наценка</dt><dd id="mMarkup">—</dd></div>
+          <div><dt>ROI на вложения</dt><dd id="mRoi">—</dd></div>
+          <div><dt>Точка нуля</dt><dd id="mBe">—</dd></div>
+        </dl>
+
+        <dl class="metrics">
+          <div><dt>Вложить в партию</dt><dd id="bInv">—</dd></div>
+          <div><dt>Прибыль с партии</dt><dd id="bProfit">—</dd></div>
+        </dl>
+
+        <button class="copy" id="xlsxBtn">Скачать Excel с формулами</button>
+        <button class="copy ghost" id="copyBtn">Скопировать расчёт текстом</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Тарифы по состоянию на 26 августа 2026 года: логистический сбор — 5 250 сум за первый литр, +250 сум за каждый следующий, потолок 50 000 сум; комиссия — 3–35% в зависимости от категории; плата за вывод выручки до 31 августа 2026 года равна нулю. При возврате товара покупателем логистический сбор возвращается — заложите потери на возвраты отдельной процентной строкой.</p>
+    <p>Проверяйте свою ставку комиссии в <a href="https://seller.uzum.uz/manual/3.tariffs/" target="_blank" rel="noopener">инструкции для продавцов</a> — она обновляется по категориям.</p>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var COLORS = ["#3B2C57","#6A2BE2","#8B5CF0","#A688F4","#BEA9F7","#D2C6FA","#9AA3AE","#C2C8D0"];
+
+  var state = {
+    mode:"price",
+    cost:50000,
+    fixed:[
+      {id:1,name:"Доставка до склада Uzum",value:2000},
+      {id:2,name:"Упаковка и маркировка",value:1500},
+      {id:3,name:"Хранение на складе",value:500}
+    ],
+    pct:[
+      {id:11,name:"Комиссия Uzum",value:15},
+      {id:12,name:"Реклама и буст заказов",value:5},
+      {id:13,name:"Плата за вывод денег",value:0},
+      {id:14,name:"Возвраты и брак",value:3}
+    ],
+    logi:"dims", dl:250, dw:180, dh:80, logiManual:6000,
+    tax:"turnover", taxRate:4,
+    vatOn:false, vatRate:12, vatIn:50000,
+    goalFix:20000,
+    round:1000,
+    price:100000,
+    qty:100
+  };
+  var uid = 100;
+
+  /* ---------- helpers ---------- */
+  function num(v){
+    if(typeof v === "number") return v;
+    var s = String(v).replace(/\s|\u00A0/g,"").replace(",",".").replace(/[^\d.\-]/g,"");
+    var n = parseFloat(s);
+    return isFinite(n) ? n : 0;
+  }
+  function fmt(n){
+    if(!isFinite(n)) return "—";
+    var neg = n < 0, a = Math.round(Math.abs(n));
+    var s = String(a).replace(/\B(?=(\d{3})+(?!\d))/g," ");
+    return (neg ? "−" : "") + s;
+  }
+  function pct(n){
+    if(!isFinite(n)) return "—";
+    return (Math.round(n*10)/10).toString().replace(".",",") + "%";
+  }
+  function $(id){ return document.getElementById(id); }
+
+  /* ---------- logistics fee ---------- */
+  function volume(){
+    var v = num(state.dl)*num(state.dw)*num(state.dh)/1000000;
+    return v > 0 ? Math.max(1, Math.ceil(v - 1e-9)) : 0;
+  }
+  function logiFee(){
+    if(state.logi === "manual") return num(state.logiManual);
+    if(state.logi === "none") return 50000;   // товар без ВГХ
+    var L = volume();
+    if(L === 0) return 50000;
+    return Math.min(50000, 5250 + 250*(L-1));
+  }
+
+  /* ---------- core math ---------- */
+  function calc(){
+    var fee = logiFee();
+    var extras = state.fixed.reduce(function(s,r){ return s + num(r.value); },0);
+    var invest = num(state.cost) + extras;         // вложенные деньги
+    var F = invest + fee;                          // все фикс. расходы на единицу
+    var p = state.pct.reduce(function(s,r){ return s + num(r.value); },0)/100;
+    var v = state.vatOn ? num(state.vatRate)/(100+num(state.vatRate)) : 0;
+    var Vin = state.vatOn ? num(state.vatIn) : 0;
+    var t = state.tax === "none" ? 0 : num(state.taxRate)/100;
+
+    var A = 1 - p - v;          // доля цены, остающаяся после % и НДС
+    var B = F - v*Vin;          // фиксированная часть с учётом вычета НДС
+
+    var price, err = null, raw = 0;
+    if(state.mode === "profit"){
+      price = num(state.price);
+      raw = price;
+    } else {
+      var denom, top;
+      var S = num(state.goalFix);
+      if(state.tax === "profit"){ denom = A; top = S/(1-t) + B; }
+      else { denom = A - t; top = B + S; }
+      if(denom <= 0.0001){
+        err = "Такую прибыль не получить: проценты расходов и налога съедают всю цену. Уменьшите процентные статьи.";
+        price = 0;
+      } else {
+        price = top/denom;
+        if(price < 0){ err = "Проверьте параметры: цена получается отрицательной."; price = 0; }
+      }
+      raw = price;
+      var rnd = num(state.round);
+      if(rnd > 0 && price > 0) price = Math.ceil(price/rnd)*rnd;
+    }
+
+    // разложение по фактической цене
+    var items = [];
+    items.push({name:"Закупка товара", val:num(state.cost)});
+    state.fixed.forEach(function(r){ if(num(r.value) !== 0) items.push({name:r.name||"Статья", val:num(r.value)}); });
+    items.push({name:"Логистический сбор", val:fee});
+    state.pct.forEach(function(r){ if(num(r.value) !== 0) items.push({name:r.name+" · "+pct(num(r.value)), val:price*num(r.value)/100}); });
+
+    var vatDue = 0;
+    if(state.vatOn){
+      vatDue = v*price - v*Vin;
+      items.push({name:"НДС к уплате", val:vatDue});
+    }
+
+    var gross = price*A - B;          // прибыль до налога
+    var tax = 0;
+    if(state.tax === "turnover") tax = t*price;
+    else if(state.tax === "profit") tax = t*Math.max(gross,0);
+    if(tax !== 0) items.push({name:"Налог · "+pct(t*100)+(state.tax==="profit"?" с прибыли":" с оборота"), val:tax});
+
+    var net = gross - tax;
+    var expenses = items.reduce(function(s,i){ return s + i.val; },0);
+
+    var breakeven = state.tax === "profit" ? (A>0 ? B/A : NaN) : ((A-t)>0 ? B/(A-t) : NaN);
+
+    return {
+      price:price, raw:raw, items:items, net:net, gross:gross, fee:fee, invest:invest,
+      expenses:expenses, err:err, breakeven:breakeven, A:A, B:B, t:t, v:v, Vin:Vin,
+      pctTotal:p, vatDue:vatDue, tax:tax,
+      margin: price>0 ? net/price*100 : NaN,
+      markup: num(state.cost)>0 ? net/num(state.cost)*100 : NaN,
+      roi: invest>0 ? net/invest*100 : NaN
+    };
+  }
+
+  /* ---------- render ---------- */
+  function render(){
+    var r = calc();
+
+    $("resTitle").textContent = state.mode === "price" ? "Цена продажи" : "Чистая прибыль с единицы";
+    if(state.mode === "price"){
+      $("bigNum").textContent = fmt(r.price);
+      $("bigNum").className = "";
+      var extra = r.net - num(state.goalFix);
+      $("subPrice").innerHTML = r.err ? "" :
+        "Чистая прибыль <b>" + fmt(r.net) + " сум</b> с единицы · маржа <b>" + pct(r.margin) + "</b>" +
+        (Math.round(extra) > 0 ? '<br><span style="color:var(--muted)">округление вверх добавило ' +
+          fmt(extra) + " сум к цели</span>" : "");
+    } else {
+      $("bigNum").textContent = fmt(r.net);
+      $("bigNum").className = r.net < 0 ? "neg" : (r.net > 0 ? "pos" : "");
+      $("subPrice").innerHTML = "При цене <b>" + fmt(r.price) + " сум</b> · маржа " + pct(r.margin);
+    }
+
+    $("alertBox").innerHTML = "";
+    if(r.err){
+      $("alertBox").innerHTML = '<div class="alert">' + r.err + '</div>';
+    } else if(r.net < 0){
+      $("alertBox").innerHTML = '<div class="alert">Убыток ' + fmt(Math.abs(r.net)) +
+        ' сум с единицы. Безубыточная цена — ' + fmt(r.breakeven) + ' сум.</div>';
+    }
+
+    // ribbon
+    var base = r.expenses + Math.max(r.net, 0);
+    var ribbon = "";
+    r.items.forEach(function(it, i){
+      var w = base > 0 ? it.val/base*100 : 0;
+      if(w > 0) ribbon += '<i style="width:' + w.toFixed(2) + '%;background:' + COLORS[i % COLORS.length] +
+        '" title="' + it.name.replace(/"/g,"") + '"></i>';
+    });
+    if(r.net > 0 && base > 0) ribbon += '<i style="width:' + (r.net/base*100).toFixed(2) +
+      '%;background:var(--profit)" title="Чистая прибыль"></i>';
+    $("ribbon").innerHTML = ribbon;
+
+    // ledger
+    var rows = '<tr class="top"><td class="k">Цена для покупателя</td><td class="v">' +
+      fmt(r.price) + '</td><td class="p">100%</td></tr>';
+    r.items.forEach(function(it, i){
+      var share = r.price > 0 ? it.val/r.price*100 : 0;
+      rows += '<tr><td class="k"><span class="dot" style="background:' + COLORS[i % COLORS.length] + '"></span>' +
+        it.name + '</td><td class="v">−' + fmt(Math.abs(it.val)) + '</td><td class="p">' +
+        (Math.round(share*10)/10).toString().replace(".",",") + '%</td></tr>';
+    });
+    rows += '<tr class="total"><td class="k">Чистая прибыль</td><td class="v ' +
+      (r.net < 0 ? "neg" : "pos") + '">' + fmt(r.net) + '</td><td class="p">' +
+      (isFinite(r.margin) ? (Math.round(r.margin*10)/10).toString().replace(".",",")+"%" : "—") + '</td></tr>';
+    $("ledger").innerHTML = rows;
+
+    $("mMargin").textContent = pct(r.margin);
+    $("mMarkup").textContent = pct(r.markup);
+    $("mRoi").textContent = pct(r.roi);
+    $("mBe").textContent = isFinite(r.breakeven) ? fmt(r.breakeven) : "—";
+    $("bInv").textContent = fmt(r.invest*num(state.qty));
+    $("bProfit").textContent = fmt(r.net*num(state.qty));
+    $("bProfit").className = r.net < 0 ? "neg" : "pos";
+
+    var L = volume();
+    $("volTxt").textContent =
+      state.logi === "manual" ? "Задано вручную" :
+      state.logi === "none" ? "Тариф без ВГХ" :
+      (L ? "Объём " + L + " л" : "Габариты не заданы — тариф без ВГХ");
+    $("logiTxt").textContent = fmt(r.fee) + " сум";
+
+    window.__last = r;
+    saveSoon();
+  }
+
+  /* ---------- editable rows ---------- */
+  function makeRow(item, kind){
+    var row = document.createElement("div");
+    row.className = "row" + (kind === "pct" ? " pct" : "");
+
+    var name = document.createElement("input");
+    name.className = "name"; name.value = item.name; name.setAttribute("aria-label","Название статьи");
+    name.addEventListener("input", function(){ item.name = name.value; render(); });
+
+    var field = document.createElement("div");
+    field.className = "field" + (kind === "pct" ? " pct" : "");
+    var val = document.createElement("input");
+    val.inputMode = kind === "pct" ? "decimal" : "numeric";
+    val.value = kind === "pct" ? String(item.value).replace(".",",") : fmt(item.value);
+    val.setAttribute("aria-label","Значение");
+    val.addEventListener("input", function(){ item.value = num(val.value); render(); });
+    val.addEventListener("blur", function(){
+      val.value = kind === "pct" ? String(item.value).replace(".",",") : fmt(item.value);
+    });
+    val.addEventListener("focus", function(){ val.select(); });
+    var unit = document.createElement("span");
+    unit.className = "unit"; unit.textContent = kind === "pct" ? "%" : "сум";
+    field.appendChild(val); field.appendChild(unit);
+
+    var del = document.createElement("button");
+    del.className = "del"; del.innerHTML = "&times;";
+    del.title = "Удалить статью"; del.setAttribute("aria-label","Удалить статью " + item.name);
+    del.addEventListener("click", function(){
+      var arr = kind === "pct" ? state.pct : state.fixed;
+      var i = arr.indexOf(item);
+      if(i > -1) arr.splice(i,1);
+      drawRows(); render();
+    });
+
+    row.appendChild(name); row.appendChild(field); row.appendChild(del);
+    return row;
+  }
+  function drawRows(){
+    var a = $("fixedRows"), b = $("pctRows");
+    a.innerHTML = ""; b.innerHTML = "";
+    state.fixed.forEach(function(it){ a.appendChild(makeRow(it,"fix")); });
+    state.pct.forEach(function(it){ b.appendChild(makeRow(it,"pct")); });
+  }
+
+  /* ---------- simple field binding ---------- */
+  function bind(id, key, isPct){
+    var el = $(id);
+    el.addEventListener("input", function(){ state[key] = num(el.value); render(); });
+    el.addEventListener("focus", function(){ el.select(); });
+    el.addEventListener("blur", function(){
+      el.value = isPct ? String(state[key]).replace(".",",") : fmt(state[key]);
+    });
+  }
+  ["cost","dl","dw","dh","logiManual","vatIn","goalFix","priceIn","qty"].forEach(function(id){
+    var key = id === "priceIn" ? "price" : id;
+    bind(id, key, false);
+  });
+  ["taxRate","vatRate"].forEach(function(id){ bind(id, id, true); });
+
+  /* dims should not be reformatted with spaces */
+  ["dl","dw","dh"].forEach(function(id){
+    $(id).addEventListener("blur", function(){ $(id).value = String(num(state[id])); });
+  });
+
+  /* ---------- toggles ---------- */
+  $("addFixed").addEventListener("click", function(){
+    state.fixed.push({id:++uid, name:"Новая статья", value:0});
+    drawRows(); render();
+    var inputs = $("fixedRows").querySelectorAll(".name");
+    inputs[inputs.length-1].focus(); inputs[inputs.length-1].select();
+  });
+  $("addPct").addEventListener("click", function(){
+    state.pct.push({id:++uid, name:"Новая статья", value:0});
+    drawRows(); render();
+    var inputs = $("pctRows").querySelectorAll(".name");
+    inputs[inputs.length-1].focus(); inputs[inputs.length-1].select();
+  });
+
+  function applyLogi(){
+    $("dimsBox").hidden = (state.logi !== "dims");
+    $("logiManualBox").hidden = (state.logi !== "manual");
+    $("logiNoneHint").hidden = (state.logi !== "none");
+  }
+  function applyVat(){ $("vatBox").hidden = !state.vatOn; }
+  function applyTax(){
+    $("taxRateBox").hidden = (state.tax === "none");
+    $("taxRateLabel").textContent = state.tax === "profit" ? "Ставка налога на прибыль" : "Ставка налога с оборота";
+  }
+  function applyMode(){
+    $("mPrice").setAttribute("aria-pressed", state.mode === "price" ? "true" : "false");
+    $("mProfit").setAttribute("aria-pressed", state.mode === "price" ? "false" : "true");
+    $("goalCard").hidden = (state.mode !== "price");
+    $("priceCard").hidden = (state.mode === "price");
+  }
+  function press(sel, attr, value){
+    var btns = document.querySelectorAll(sel);
+    Array.prototype.forEach.call(btns, function(b){
+      b.setAttribute("aria-pressed", b.getAttribute(attr) === value ? "true" : "false");
+    });
+  }
+  function syncUI(){
+    $("cost").value = fmt(state.cost);
+    $("dl").value = String(num(state.dl));
+    $("dw").value = String(num(state.dw));
+    $("dh").value = String(num(state.dh));
+    $("logiManual").value = fmt(state.logiManual);
+    $("taxRate").value = String(state.taxRate).replace(".", ",");
+    $("vatRate").value = String(state.vatRate).replace(".", ",");
+    $("vatIn").value = fmt(state.vatIn);
+    $("goalFix").value = fmt(state.goalFix);
+    $("priceIn").value = fmt(state.price);
+    $("qty").value = fmt(state.qty);
+    $("round").value = String(num(state.round));
+    press("[data-logi]", "data-logi", state.logi);
+    press("[data-vat]", "data-vat", state.vatOn ? "on" : "off");
+    press("[data-tax]", "data-tax", state.tax);
+    applyLogi(); applyVat(); applyTax(); applyMode();
+    drawRows(); render();
+  }
+
+  function group(sel, attr, fn){
+    var btns = document.querySelectorAll(sel);
+    Array.prototype.forEach.call(btns, function(b){
+      b.addEventListener("click", function(){
+        Array.prototype.forEach.call(btns, function(x){ x.setAttribute("aria-pressed","false"); });
+        b.setAttribute("aria-pressed","true");
+        fn(b.getAttribute(attr));
+        render();
+      });
+    });
+  }
+  group("[data-logi]","data-logi",function(v){ state.logi = v; applyLogi(); });
+  group("[data-vat]","data-vat",function(v){ state.vatOn = (v === "on"); applyVat(); });
+  group("[data-tax]","data-tax",function(v){
+    state.tax = v;
+    if(v === "profit" && state.taxRate === 4){ state.taxRate = 15; $("taxRate").value = "15"; }
+    if(v === "turnover" && state.taxRate === 15){ state.taxRate = 4; $("taxRate").value = "4"; }
+    applyTax();
+  });
+  $("round").addEventListener("change", function(){ state.round = num(this.value); render(); });
+
+  function setMode(m){
+    state.mode = m;
+    if(m === "profit" && window.__last && window.__last.price > 0){
+      state.price = Math.round(window.__last.price);
+      $("priceIn").value = fmt(state.price);
+    }
+    applyMode();
+    render();
+  }
+  $("mPrice").addEventListener("click", function(){ setMode("price"); });
+  $("mProfit").addEventListener("click", function(){ setMode("profit"); });
+
+  /* ---------- хранение настроек ----------
+     Приоритет — это устройство: IndexedDB + память браузера.
+     Хранилище аккаунта используется только чтобы поднять настройки
+     на устройстве, где их ещё нет.                                   */
+  var KEY = "uzum-unit-economics";
+  var IDB_DB = "uzum-calc", IDB_ST = "kv";
+  var DB = {profiles:[], last:null, savedAt:0};
+  var booted = false, saveTimer = null, persistAsked = false, whereSaved = "";
+
+  function hasApi(){ return !!(window.storage && window.storage.get && window.storage.set); }
+  function readLocal(){
+    try{ var s = window.localStorage.getItem(KEY); return s ? JSON.parse(s) : null; }
+    catch(e){ return null; }
+  }
+  function writeLocal(s){
+    try{ window.localStorage.setItem(KEY, s); return true; }catch(e){ return false; }
+  }
+
+  function idbOpen(){
+    return new Promise(function(res, rej){
+      try{
+        if(!window.indexedDB) return rej();
+        var req = window.indexedDB.open(IDB_DB, 1);
+        req.onupgradeneeded = function(){
+          var db = req.result;
+          if(!db.objectStoreNames.contains(IDB_ST)) db.createObjectStore(IDB_ST);
+        };
+        req.onsuccess = function(){ res(req.result); };
+        req.onerror = function(){ rej(); };
+        req.onblocked = function(){ rej(); };
+      }catch(e){ rej(); }
+    });
+  }
+  function idbGet(){
+    return idbOpen().then(function(db){
+      return new Promise(function(res, rej){
+        try{
+          var rq = db.transaction(IDB_ST, "readonly").objectStore(IDB_ST).get(KEY);
+          rq.onsuccess = function(){ res(rq.result || null); };
+          rq.onerror = function(){ rej(); };
+        }catch(e){ rej(); }
+      });
+    });
+  }
+  function idbPut(obj){
+    return idbOpen().then(function(db){
+      return new Promise(function(res, rej){
+        try{
+          var tx = db.transaction(IDB_ST, "readwrite");
+          tx.objectStore(IDB_ST).put(obj, KEY);
+          tx.oncomplete = function(){ res(true); };
+          tx.onerror = function(){ rej(); };
+          tx.onabort = function(){ rej(); };
+        }catch(e){ rej(); }
+      });
+    });
+  }
+  function quiet(p, fallback){
+    return p.then(function(v){ return v; }, function(){ return fallback; });
+  }
+
+  function apiGet(){
+    try{
+      return window.storage.get(KEY, false).then(
+        function(res){ return res && res.value ? JSON.parse(res.value) : null; },
+        function(){ return null; }
+      );
+    }catch(e){ return Promise.resolve(null); }
+  }
+  function waitApi(){
+    return new Promise(function(res){
+      var n = 0;
+      (function tick(){
+        if(hasApi()) return res(apiGet());
+        if(++n > 8) return res(null);
+        setTimeout(tick, 50);
+      })();
+    });
+  }
+  function newest(list){
+    var best = null;
+    list.forEach(function(x){
+      if(!x || typeof x !== "object") return;
+      if(!best || (x.savedAt || 0) > (best.savedAt || 0)) best = x;
+    });
+    return best;
+  }
+
+  function storeLoad(){
+    var loc = readLocal();
+    return quiet(idbGet(), null).then(function(fromIdb){
+      var onDevice = newest([fromIdb, loc]);
+      if(onDevice) return {data:onDevice, source:"device"};
+      // на этом устройстве пусто — поднимем из аккаунта, если он есть
+      return waitApi().then(function(fromApi){
+        return fromApi ? {data:fromApi, source:"account"} : {data:null, source:"none"};
+      });
+    });
+  }
+
+  function askPersist(){
+    if(persistAsked) return;
+    persistAsked = true;
+    try{
+      if(navigator.storage && navigator.storage.persist) navigator.storage.persist();
+    }catch(e){}
+  }
+
+  function storeSave(){
+    DB.savedAt = Date.now();
+    var s = JSON.stringify(DB);
+    var okLocal = writeLocal(s);
+    var jobs = [quiet(idbPut(DB), false)];
+    if(hasApi()){
+      try{ jobs.push(quiet(window.storage.set(KEY, s, false).then(function(){ return true; }), false)); }
+      catch(e){}
+    }
+    return Promise.all(jobs).then(function(r){
+      var okIdb = !!r[0], okApi = !!r[1];
+      whereSaved = (okIdb || okLocal) ? "device" : (okApi ? "account" : "");
+      if(okIdb || okLocal) askPersist();
+      return whereSaved;
+    });
+  }
+  function baseHint(){
+    return whereSaved === "account"
+      ? "Сохраняется в вашем аккаунте"
+      : "Сохраняется на этом устройстве";
+  }
+  function note(text){
+    $("savedHint").textContent = text;
+    if(text) setTimeout(function(){
+      if($("savedHint").textContent === text) $("savedHint").textContent = baseHint();
+    }, 2200);
+  }
+  function saveSoon(){
+    if(!booted) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function(){
+      DB.last = snapshot();
+      storeSave();
+    }, 700);
+  }
+
+  function snapshot(){
+    return {
+      mode:state.mode, cost:num(state.cost),
+      fixed:state.fixed.map(function(r){ return {name:r.name, value:num(r.value)}; }),
+      pct:state.pct.map(function(r){ return {name:r.name, value:num(r.value)}; }),
+      logi:state.logi, dl:num(state.dl), dw:num(state.dw), dh:num(state.dh),
+      logiManual:num(state.logiManual),
+      tax:state.tax, taxRate:num(state.taxRate),
+      vatOn:!!state.vatOn, vatRate:num(state.vatRate), vatIn:num(state.vatIn),
+      goalFix:num(state.goalFix), round:num(state.round),
+      price:num(state.price), qty:num(state.qty)
+    };
+  }
+  function restore(o){
+    if(!o || typeof o !== "object") return false;
+    ["cost","dl","dw","dh","logiManual","taxRate","vatRate","vatIn","goalFix","round","price","qty"]
+      .forEach(function(k){ if(typeof o[k] === "number" && isFinite(o[k])) state[k] = o[k]; });
+    if(o.mode === "price" || o.mode === "profit") state.mode = o.mode;
+    if(o.logi === "dims" || o.logi === "manual" || o.logi === "none") state.logi = o.logi;
+    if(o.tax === "turnover" || o.tax === "profit" || o.tax === "none") state.tax = o.tax;
+    state.vatOn = !!o.vatOn;
+    function rows(src){
+      return src.filter(function(r){ return r && typeof r === "object"; })
+        .slice(0,40)
+        .map(function(r){ return {id:++uid, name:String(r.name || "Статья").slice(0,60), value:num(r.value)}; });
+    }
+    if(Array.isArray(o.fixed)) state.fixed = rows(o.fixed);
+    if(Array.isArray(o.pct)) state.pct = rows(o.pct);
+    return true;
+  }
+
+  /* ---------- профили ---------- */
+  function renderProfiles(){
+    var box = $("profList");
+    box.innerHTML = "";
+    if(!DB.profiles.length){
+      box.innerHTML = '<p class="empty">Пока ничего не сохранено.</p>';
+      return;
+    }
+    DB.profiles.forEach(function(p, i){
+      var row = document.createElement("div");
+      row.className = "prof";
+
+      var nm = document.createElement("div");
+      nm.className = "pname";
+      nm.innerHTML = "";
+      nm.appendChild(document.createTextNode(p.name));
+      var sm = document.createElement("small");
+      sm.textContent = (p.date || "") + (p.state && p.state.cost ? " · закупка " + fmt(p.state.cost) : "");
+      nm.appendChild(sm);
+
+      var load = document.createElement("button");
+      load.className = "load"; load.textContent = "Открыть";
+      load.addEventListener("click", function(){
+        if(restore(p.state)){
+          $("profName").value = p.name;
+          syncUI();
+          note("Открыт расчёт «" + p.name + "»");
+          saveSoon();
+        }
+      });
+
+      var del = document.createElement("button");
+      del.className = "del"; del.innerHTML = "&times;";
+      del.title = "Удалить расчёт";
+      del.setAttribute("aria-label", "Удалить расчёт " + p.name);
+      del.addEventListener("click", function(){
+        DB.profiles.splice(i,1);
+        renderProfiles(); storeSave(); note("Удалено");
+      });
+
+      row.appendChild(nm); row.appendChild(load); row.appendChild(del);
+      box.appendChild(row);
+    });
+  }
+
+  $("saveProf").addEventListener("click", function(){
+    var name = ($("profName").value || "").trim();
+    if(!name){ $("profName").focus(); note("Впишите название, чтобы сохранить"); return; }
+    var d = new Date();
+    var entry = {
+      name:name,
+      date:("0"+d.getDate()).slice(-2)+"."+("0"+(d.getMonth()+1)).slice(-2)+"."+d.getFullYear(),
+      state:snapshot()
+    };
+    var existing = -1;
+    DB.profiles.forEach(function(p,i){ if(p.name === name) existing = i; });
+    if(existing > -1) DB.profiles[existing] = entry;
+    else DB.profiles.unshift(entry);
+    DB.profiles = DB.profiles.slice(0,30);
+    DB.last = entry.state;
+    renderProfiles();
+    storeSave().then(function(){
+      note(existing > -1 ? "Обновлено" : "Сохранено на этом устройстве");
+    });
+  });
+  $("profName").addEventListener("keydown", function(e){
+    if(e.key === "Enter") $("saveProf").click();
+  });
+
+  function dl(blob, name){
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  }
+  $("expSet").addEventListener("click", function(){
+    DB.last = snapshot();
+    var blob = new Blob([JSON.stringify(DB, null, 2)], {type:"application/json"});
+    dl(blob, "uzum-nastroyki.json");
+    note("Файл настроек выгружен");
+  });
+  $("impSet").addEventListener("click", function(){ $("impFile").click(); });
+  $("impFile").addEventListener("change", function(){
+    var file = this.files && this.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var o = JSON.parse(String(reader.result));
+        var added = 0;
+        if(Array.isArray(o.profiles)){
+          o.profiles.forEach(function(p){
+            if(!p || !p.name || !p.state) return;
+            var i = -1;
+            DB.profiles.forEach(function(x,k){ if(x.name === p.name) i = k; });
+            if(i > -1) DB.profiles[i] = p; else DB.profiles.unshift(p);
+            added++;
+          });
+        }
+        var applied = restore(o.last || o.state || o);
+        DB.profiles = DB.profiles.slice(0,30);
+        renderProfiles();
+        if(applied) syncUI();
+        storeSave();
+        note(added ? "Загружено расчётов: " + added : "Настройки применены");
+      }catch(e){
+        note("Не получилось прочитать файл — нужен JSON, выгруженный отсюда");
+      }
+    };
+    reader.readAsText(file);
+    this.value = "";
+  });
+
+  /* ---------- экспорт в Excel ---------- */
+  var NUM = "#,##0", PCT = "0.0%";
+  function nc(v, z){ return {t:"n", v:v, z:z || NUM}; }
+  function fc(formula, v, z){ return {t:"n", f:formula, v:v, z:z || NUM}; }
+
+  function buildRows(){
+    var r = calc();
+    var rows = [];
+    function add(a, b, c){ rows.push([a, b, c]); return rows.length; }
+
+    var today = new Date();
+    var dd = ("0"+today.getDate()).slice(-2) + "." + ("0"+(today.getMonth()+1)).slice(-2) + "." + today.getFullYear();
+
+    add("Юнит-экономика Uzum Market");
+    add("Расчёт от " + dd + ". Меняйте числа в колонке B до раздела «Разбор цены» — всё пересчитается само.");
+    add();
+
+    add("ИСХОДНЫЕ ДАННЫЕ");
+    var rCost = add("Закупочная цена", nc(num(state.cost)), "сум");
+    var last = rCost;
+    state.fixed.forEach(function(it){ last = add(it.name || "Статья расходов", nc(num(it.value)), "сум"); });
+    var logiNote = state.logi === "manual" ? "задано вручную"
+      : state.logi === "none" ? "тариф без ВГХ"
+      : (volume() ? "объём " + volume() + " л" : "тариф без ВГХ");
+    var rLogi = add("Логистический сбор Uzum", nc(r.fee), logiNote);
+    var rInv = add("Вложения в единицу", fc("SUM(B"+rCost+":B"+last+")", r.invest), "оплачено до продажи");
+    var rFix = add("Фиксированные расходы всего", fc("B"+rInv+"+B"+rLogi, r.invest + r.fee), "сум");
+    add();
+
+    add("ПРОЦЕНТЫ С ПРОДАЖИ");
+    var pFirst = 0, pLast = 0;
+    state.pct.forEach(function(it){
+      var n = add(it.name || "Процентная статья", nc(num(it.value)/100, PCT));
+      if(!pFirst) pFirst = n;
+      pLast = n;
+    });
+    var rPct = pFirst
+      ? add("Итого процентов", fc("SUM(B"+pFirst+":B"+pLast+")", r.pctTotal, PCT))
+      : add("Итого процентов", nc(0, PCT));
+    add();
+
+    add("НАЛОГИ");
+    var taxName = state.tax === "profit" ? "Ставка налога на прибыль"
+      : state.tax === "turnover" ? "Ставка налога с оборота" : "Налог не применяется";
+    var rTax = add(taxName, nc(r.t, PCT));
+    var rVat = add("Ставка НДС", nc(r.v > 0 ? num(state.vatRate)/100 : 0, PCT),
+      state.vatOn ? "" : "не плательщик");
+    var rVin = add("Затраты с входным НДС", nc(r.Vin), "сум");
+    add();
+
+    var rGoal = 0, rRound = 0, rRaw = 0, rPrice = 0;
+    var vatShare = "B"+rVat+"/(1+B"+rVat+")";
+    var rA = 0, rB = 0;
+
+    if(state.mode === "price"){
+      add("ЦЕЛЬ");
+      rGoal = add("Чистая прибыль с единицы", nc(num(state.goalFix)), "сум");
+      rRound = add("Шаг округления цены", nc(num(state.round)), "0 — без округления");
+      add();
+      add("РАСЧЁТ ЦЕНЫ");
+      rA = add("Доля цены после процентов и НДС", fc("1-B"+rPct+"-"+vatShare, r.A, "0.0000"));
+      rB = add("База фиксированных расходов", fc("B"+rFix+"-"+vatShare+"*B"+rVin, r.B));
+      var pf = state.tax === "profit"
+        ? "(B"+rGoal+"/(1-B"+rTax+")+B"+rB+")/B"+rA
+        : "(B"+rB+"+B"+rGoal+")/(B"+rA+"-B"+rTax+")";
+      rRaw = add("Цена без округления", fc(pf, r.raw));
+      rPrice = add("ЦЕНА ПРОДАЖИ", fc("IF(B"+rRound+"=0,B"+rRaw+",CEILING(B"+rRaw+",B"+rRound+"))", r.price));
+    } else {
+      add("РАСЧЁТ ПРИБЫЛИ");
+      rPrice = add("ЦЕНА ПРОДАЖИ", nc(r.price), "задана вручную");
+      rA = add("Доля цены после процентов и НДС", fc("1-B"+rPct+"-"+vatShare, r.A, "0.0000"));
+      rB = add("База фиксированных расходов", fc("B"+rFix+"-"+vatShare+"*B"+rVin, r.B));
+    }
+    add();
+
+    add("РАЗБОР ЦЕНЫ", null, "доля от цены");
+    var rHead = add("Цена для покупателя", fc("B"+rPrice, r.price), fc("B"+(rows.length+1)+"/B$"+rPrice, 1, PCT));
+    var first = 0, lastItem = 0;
+    function item(label, formula, value){
+      var n = rows.length + 1;
+      var res = add("− " + label, fc(formula, value), fc("B"+n+"/B$"+rPrice, r.price > 0 ? value/r.price : 0, PCT));
+      if(!first) first = res;
+      lastItem = res;
+      return res;
+    }
+    item("Закупка товара", "B"+rCost, num(state.cost));
+    state.fixed.forEach(function(it, i){
+      item(it.name || "Статья расходов", "B"+(rCost+1+i), num(it.value));
+    });
+    item("Логистический сбор", "B"+rLogi, r.fee);
+    state.pct.forEach(function(it, i){
+      item(it.name || "Процентная статья", "B"+rPrice+"*B"+(pFirst+i), r.price*num(it.value)/100);
+    });
+    if(state.vatOn) item("НДС к уплате", vatShare+"*(B"+rPrice+"-B"+rVin+")", r.vatDue);
+    if(state.tax !== "none"){
+      item("Налог",
+        state.tax === "turnover" ? "B"+rPrice+"*B"+rTax
+          : "MAX(0,B"+rPrice+"*B"+rA+"-B"+rB+")*B"+rTax,
+        r.tax);
+    }
+    var rNet = add("ЧИСТАЯ ПРИБЫЛЬ С ЕДИНИЦЫ",
+      fc("B"+rPrice+"-SUM(B"+first+":B"+lastItem+")", r.net),
+      fc("B"+(rows.length+1)+"/B$"+rPrice, r.price > 0 ? r.net/r.price : 0, PCT));
+    add();
+
+    add("ИТОГОВЫЕ ПОКАЗАТЕЛИ");
+    add("Чистая маржа", fc("B"+rNet+"/B"+rPrice, r.price > 0 ? r.net/r.price : 0, PCT), "доля прибыли в цене");
+    add("Наценка к закупке", fc("B"+rNet+"/B"+rCost, num(state.cost) > 0 ? r.net/num(state.cost) : 0, PCT));
+    add("ROI на вложения", fc("B"+rNet+"/B"+rInv, r.invest > 0 ? r.net/r.invest : 0, PCT));
+    add("Безубыточная цена",
+      fc(state.tax === "profit" ? "B"+rB+"/B"+rA : "B"+rB+"/(B"+rA+"-B"+rTax+")", r.breakeven),
+      "прибыль равна нулю");
+    add();
+
+    add("ПАРТИЯ");
+    var rQty = add("Количество, шт", {t:"n", v:num(state.qty)});
+    add("Вложить в закупку", fc("B"+rInv+"*B"+rQty, r.invest*num(state.qty)), "сум");
+    add("Выручка", fc("B"+rPrice+"*B"+rQty, r.price*num(state.qty)), "сум");
+    add("Чистая прибыль", fc("B"+rNet+"*B"+rQty, r.net*num(state.qty)), "сум");
+
+    return {rows:rows, res:r, date:dd};
+  }
+
+  function fileName(ext){
+    var d = new Date();
+    return "uzum-unit-economics-" + d.getFullYear() +
+      ("0"+(d.getMonth()+1)).slice(-2) + ("0"+d.getDate()).slice(-2) + "." + ext;
+  }
+
+  function downloadCsv(built){
+    var sep = ";";
+    var lines = built.rows.map(function(row){
+      return row.map(function(c){
+        if(c === undefined || c === null) return "";
+        var v = (typeof c === "object") ? c.v : c;
+        if(typeof v === "number") return String(Math.round(v*10000)/10000).replace(".", ",");
+        return '"' + String(v).replace(/"/g, '""') + '"';
+      }).join(sep);
+    });
+    var blob = new Blob(["\uFEFF" + lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName("csv");
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  }
+
+  $("xlsxBtn").addEventListener("click", function(){
+    var btn = this, built = buildRows();
+    try{
+      if(!window.XLSX) throw new Error("no xlsx");
+      var ws = XLSX.utils.aoa_to_sheet(built.rows);
+      ws["!cols"] = [{wch:36},{wch:16},{wch:26}];
+      var wb = XLSX.utils.book_new();
+      wb.Workbook = {CalcPr:{fullCalcOnLoad:true}};
+      XLSX.utils.book_append_sheet(wb, ws, "Расчёт");
+      XLSX.writeFile(wb, fileName("xlsx"));
+      btn.textContent = "Файл скачан";
+    } catch(e){
+      downloadCsv(built);
+      btn.textContent = "Скачан CSV для Excel";
+    }
+    setTimeout(function(){ btn.textContent = "Скачать Excel с формулами"; }, 2000);
+  });
+
+  /* ---------- copy ---------- */
+  $("copyBtn").addEventListener("click", function(){
+    var r = calc(), lines = [];
+    lines.push("Юнит-экономика Uzum Market");
+    lines.push("Цена для покупателя: " + fmt(r.price) + " сум");
+    r.items.forEach(function(it){ lines.push("  − " + it.name + ": " + fmt(it.val) + " сум"); });
+    lines.push("Чистая прибыль: " + fmt(r.net) + " сум (" + pct(r.margin) + ")");
+    lines.push("Наценка " + pct(r.markup) + " · ROI " + pct(r.roi) +
+               " · безубыточность " + fmt(r.breakeven) + " сум");
+    lines.push("Партия " + fmt(num(state.qty)) + " шт: вложить " + fmt(r.invest*num(state.qty)) +
+               " сум, прибыль " + fmt(r.net*num(state.qty)) + " сум");
+    var text = lines.join("\n");
+    var btn = this;
+    function done(ok){
+      btn.textContent = ok ? "Скопировано" : "Не удалось скопировать";
+      setTimeout(function(){ btn.textContent = "Скопировать расчёт"; }, 1600);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ done(false); });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      var ok = false;
+      try{ ok = document.execCommand("copy"); }catch(e){}
+      document.body.removeChild(ta); done(ok);
+    }
+  });
+
+  drawRows();
+  applyMode();
+  render();
+  $("savedHint").textContent = "Ищу сохранённое…";
+  storeLoad().then(function(r){
+    var db = r && r.data;
+    if(db && typeof db === "object"){
+      if(Array.isArray(db.profiles)) DB.profiles = db.profiles;
+      if(typeof db.savedAt === "number") DB.savedAt = db.savedAt;
+      if(db.last) restore(db.last);
+    }
+    renderProfiles();
+    syncUI();
+    booted = true;
+    whereSaved = "device";
+    if(r && r.source === "account"){
+      // перенесём на это устройство, чтобы дальше работало без сети
+      DB.last = snapshot();
+      storeSave().then(function(){ note("Настройки перенесены на это устройство"); });
+    } else {
+      $("savedHint").textContent = baseHint();
+    }
+  }, function(){
+    renderProfiles();
+    booted = true;
+    $("savedHint").textContent = baseHint();
+  });
+})();
+</script>
+</body>
+</html>
